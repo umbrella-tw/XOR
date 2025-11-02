@@ -12,6 +12,8 @@
 #include <game/server/save.h>
 #include <game/server/teams.h>
 
+
+
 void CGameContext::ConGoLeft(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;

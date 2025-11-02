@@ -514,6 +514,13 @@ MACRO_CONFIG_STR(DbgStressServer, dbg_stress_server, 32, "localhost", CFGFLAG_CL
 
 MACRO_CONFIG_INT(HttpAllowInsecure, http_allow_insecure, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SERVER, "Allow insecure HTTP protocol in addition to the secure HTTPS one. Mostly useful for testing.")
 
+// XOR
+
+MACRO_CONFIG_STR(SvTelegramLink, xor_telegram_link, 256, "XOR Telegram channel: t.me/XOR_TW", CFGFLAG_SERVER, "Insert a link to your Telegram channel. Example: t.me/XOR_TW")
+MACRO_CONFIG_STR(SvDiscordLink, xor_discord_link, 256, "XOR Discord server: dsc.gg/XOR-TW", CFGFLAG_SERVER, "Insert a link to your Discord server. Example: dsc.gg/XOR-TW")
+
+
+
 // DDRace
 MACRO_CONFIG_STR(SvWelcome, sv_welcome, 256, "", CFGFLAG_SERVER, "Message that will be displayed to players who join the server")
 MACRO_CONFIG_INT(SvReservedSlots, sv_reserved_slots, 0, 0, SERVER_MAX_CLIENTS, CFGFLAG_SERVER, "The number of slots that are reserved for special players")

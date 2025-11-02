@@ -349,6 +349,7 @@ public:
 	void OnConsoleInit() override;
 	void RegisterDDRaceCommands();
 	void RegisterChatCommands();
+	void RegisterXorCommands();
 	[[nodiscard]] bool OnMapChange(char *pNewMapName, int MapNameSize) override;
 	void OnShutdown(void *pPersistentData) override;
 
@@ -440,8 +441,25 @@ private:
 	bool m_VoteWillPass;
 	CScore *m_pScore;
 
+	// XOR 
+	
+	// chat
+
+	static void ConTelegramLink(IConsole::IResult *pResult, void *pUserData);
+	static void ConDiscordLink(IConsole::IResult *pResult, void *pUserData);
+	static void ConTelehere(IConsole::IResult *pResult, void *pUserData); 
+	static void ConDeepPl(IConsole::IResult *pResult, void *pUserData); 
+	static void ConUnDeepPl(IConsole::IResult *pResult, void *pUserData); 
+	
+	// console
+
+	static void ConBroadcastId(IConsole::IResult *pResult, void *pUserData); 
+	
+
+
 	// DDRace Console Commands
 
+	
 	static void ConKillPlayer(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConNinja(IConsole::IResult *pResult, void *pUserData);

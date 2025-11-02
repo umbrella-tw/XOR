@@ -16,6 +16,264 @@
 #include <game/teamscore.h>
 #include <game/version.h>
 
+// XOR chat
+
+void CGameContext::ConTelegramLink(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	bool Printed = false;
+
+	if(g_Config.m_SvTelegramLink[0]) 
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
+			g_Config.m_SvTelegramLink);
+		Printed = true;
+	}
+
+	if(!Printed)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
+			"No Telegram link defined.");
+	}
+}
+
+void CGameContext::ConDiscordLink(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	bool Printed = false;
+
+	if(g_Config.m_SvDiscordLink[0]) 
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
+			g_Config.m_SvDiscordLink);
+		Printed = true;
+	}
+
+	if(!Printed)
+	{
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
+			"No Discord link defined.");
+	}
+}
+
+void CGameContext::ConTelehere(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if(!CheckClientId(pResult->m_ClientId))
+		return;
+
+	if(!pSelf->Server()->IsRconAuthed(pResult->m_ClientId))
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "You must be an administrator to use this command.");
+		return;
+	}
+
+	CPlayer *pCallingPlayer = pSelf->m_apPlayers[pResult->m_ClientId];
+	if(!pCallingPlayer)
+		return;
+
+	CCharacter *pCallingCharacter = pCallingPlayer->GetCharacter();
+	if(!pCallingCharacter)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "You must be logged in to rcon to use this command.");
+		return;
+	}
+
+	if(pResult->NumArguments() == 0)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "Usage: /telehere ?r[player name | player id]");
+		return;
+	}
+
+	int TargetClientId = -1;
+	const char *pArg = pResult->GetString(0);
+
+	// Try to interpret the argument as a client ID
+	int ParsedId;
+	if(str_toint(pArg, &ParsedId) && ParsedId >= 0 && ParsedId < MAX_CLIENTS && pSelf->m_apPlayers[ParsedId])
+	{
+		TargetClientId = ParsedId;
+	}
+	else
+	{
+		// If not a valid ID, try to find player by name
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(pSelf->m_apPlayers[i] && str_comp(pArg, pSelf->Server()->ClientName(i)) == 0)
+			{
+				TargetClientId = i;
+				break;
+			}
+		}
+	}
+
+	if(TargetClientId == -1 || TargetClientId == pResult->m_ClientId)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "No valid player with this name or ID found.");
+		return;
+	}
+
+	CPlayer *pTargetPlayer = pSelf->m_apPlayers[TargetClientId];
+	if(!pTargetPlayer)
+		return;
+
+	CCharacter *pTargetCharacter = pTargetPlayer->GetCharacter();
+	if(!pTargetCharacter)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "The target player has no active character.");
+		return;
+	}
+
+	// Teleport the target player's character to the calling player's position
+	vec2 Pos = pCallingCharacter->m_Pos;
+	pSelf->Teleport(pTargetCharacter, Pos);
+	pTargetCharacter->ResetJumps();
+	pTargetCharacter->UnFreeze();
+	pTargetCharacter->ResetVelocity();
+	pTargetCharacter->SetSolo(false); 
+	// pTargetCharacter->SetDeepFrozen(false);
+	pTargetPlayer->m_LastTeleTee.Save(pTargetCharacter);
+
+	// Notify both players
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "Teleported '%s' to your position.", pSelf->Server()->ClientName(TargetClientId));
+	pSelf->SendChatTarget(pResult->m_ClientId, aBuf);
+	str_format(aBuf, sizeof(aBuf), "You were teleported to '%s's position.", pSelf->Server()->ClientName(pResult->m_ClientId));
+	pSelf->SendChatTarget(TargetClientId, aBuf);
+}
+
+void CGameContext::ConDeepPl(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if(!CheckClientId(pResult->m_ClientId))
+		return;
+
+	if(!pSelf->Server()->IsRconAuthed(pResult->m_ClientId))
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "You must be an administrator to use this command.");
+		return;
+	}
+
+	if(pResult->NumArguments() == 0)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "Usage: /deeppl ?r[player name | player id]");
+		return;
+	}
+
+	int TargetClientId = -1;
+	const char *pArg = pResult->GetString(0);
+
+	// Try to interpret the argument as a client ID
+	int ParsedId;
+	if(str_toint(pArg, &ParsedId) && ParsedId >= 0 && ParsedId < MAX_CLIENTS && pSelf->m_apPlayers[ParsedId])
+	{
+		TargetClientId = ParsedId;
+	}
+	else
+	{
+		// If not a valid ID, try to find player by name
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(pSelf->m_apPlayers[i] && str_comp(pArg, pSelf->Server()->ClientName(i)) == 0)
+			{
+				TargetClientId = i;
+				break;
+			}
+		}
+	}
+
+	if(TargetClientId == -1 || TargetClientId == pResult->m_ClientId)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "No valid player with this name or ID found.");
+		return;
+	}
+
+	CPlayer *pTargetPlayer = pSelf->m_apPlayers[TargetClientId];
+	if(!pTargetPlayer)
+		return;
+
+	CCharacter *pTargetCharacter = pTargetPlayer->GetCharacter();
+	if(!pTargetCharacter)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "The target player has no active character.");
+		return;
+	}
+
+	pTargetCharacter->SetDeepFrozen(true);
+
+	// Notify only the admin
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "'%s' has been deep frozen.", pSelf->Server()->ClientName(TargetClientId));
+	pSelf->SendChatTarget(pResult->m_ClientId, aBuf);
+}
+
+void CGameContext::ConUnDeepPl(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if(!CheckClientId(pResult->m_ClientId))
+		return;
+
+	if(!pSelf->Server()->IsRconAuthed(pResult->m_ClientId))
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "You must be an administrator to use this command.");
+		return;
+	}
+
+	if(pResult->NumArguments() == 0)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "Usage: /undeeppl ?r[player name | player id]");
+		return;
+	}
+
+	int TargetClientId = -1;
+	const char *pArg = pResult->GetString(0);
+
+	// Try to interpret the argument as a client ID
+	int ParsedId;
+	if(str_toint(pArg, &ParsedId) && ParsedId >= 0 && ParsedId < MAX_CLIENTS && pSelf->m_apPlayers[ParsedId])
+	{
+		TargetClientId = ParsedId;
+	}
+	else
+	{
+		// If not a valid ID, try to find player by name
+		for(int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(pSelf->m_apPlayers[i] && str_comp(pArg, pSelf->Server()->ClientName(i)) == 0)
+			{
+				TargetClientId = i;
+				break;
+			}
+		}
+	}
+
+	if(TargetClientId == -1 || TargetClientId == pResult->m_ClientId)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "No valid player with this name or ID found.");
+		return;
+	}
+
+	CPlayer *pTargetPlayer = pSelf->m_apPlayers[TargetClientId];
+	if(!pTargetPlayer)
+		return;
+
+	CCharacter *pTargetCharacter = pTargetPlayer->GetCharacter();
+	if(!pTargetCharacter)
+	{
+		pSelf->SendChatTarget(pResult->m_ClientId, "The target player has no active character.");
+		return;
+	}
+
+	pTargetCharacter->SetDeepFrozen(false);
+
+	// Notify only the admin
+	char aBuf[256];
+	str_format(aBuf, sizeof(aBuf), "'%s' has been deep frozen.", pSelf->Server()->ClientName(TargetClientId));
+	pSelf->SendChatTarget(pResult->m_ClientId, aBuf);
+}
+
+// DDNet
+
 void CGameContext::ConCredits(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;

@@ -49,6 +49,41 @@
 
 #include <cstdio>
 
+// XOR
+
+void CGameContext::ConBroadcastId(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	const int Victim = pResult->GetVictim();
+	if(!CheckClientId(Victim) || !pSelf->m_apPlayers[Victim])
+	{
+		log_info("broadcast", "Client ID not found: %d", Victim);
+		return;
+	}
+
+	char aBuf[1024];
+	str_copy(aBuf, pResult->GetString(1), sizeof(aBuf));
+
+	int i, j;
+	for(i = 0, j = 0; aBuf[i]; i++, j++)
+	{
+		if(aBuf[i] == '\\' && aBuf[i + 1] == 'n')
+		{
+			aBuf[j] = '\n';
+			i++;
+		}
+		else if(i != j)
+		{
+			aBuf[j] = aBuf[i];
+		}
+	}
+	aBuf[j] = '\0';
+
+	pSelf->SendBroadcast(aBuf, Victim);
+}
+
+
 // Not thread-safe!
 class CClientChatLogger : public ILogger
 {
@@ -3932,10 +3967,11 @@ void CGameContext::OnConsoleInit()
 	Console()->Chain("sv_vote_kick_min", ConchainSettingUpdate, this);
 	Console()->Chain("sv_vote_spectate", ConchainSettingUpdate, this);
 	Console()->Chain("sv_spectator_slots", ConchainSettingUpdate, this);
-
+	
 	RegisterDDRaceCommands();
 	RegisterChatCommands();
 	RegisterDDNetPPCommands(); // ddnet++
+	RegisterXorCommands(); // XOR
 }
 
 void CGameContext::RegisterDDRaceCommands()
@@ -4113,6 +4149,22 @@ void CGameContext::RegisterChatCommands()
 	Console()->Register("unendless", "", CFGFLAG_CHAT | CMDFLAG_PRACTICE, ConPracticeUnEndlessHook, this, "Removes endless hook from you");
 	Console()->Register("invincible", "?i['0'|'1']", CFGFLAG_CHAT | CMDFLAG_PRACTICE, ConPracticeToggleInvincible, this, "Toggles invincible mode");
 	Console()->Register("kill", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConProtectedKill, this, "Kill yourself when kill-protected during a long game (use f1, kill for regular kill)");
+}
+
+void CGameContext::RegisterXorCommands(){
+
+	// Chat
+
+	Console()->Register("telegram", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConTelegramLink, this, "Shows the Discord link");
+	Console()->Register("discord", "", CFGFLAG_CHAT | CFGFLAG_SERVER, ConDiscordLink, this, "Shows the Discord link");
+	Console()->Register("telehere", "?r[player name | player id]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConTelehere, this, "Teleport player to you. Usage: /telehere ?r[player name | player id");
+	Console()->Register("deeppl", "?r[player name | player id]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConDeepPl, this, "Makes the player DeepFreeze. Usage: /deeppl ?r[player name | player id");
+	Console()->Register("undeeppl", "?r[player name | player id]", CFGFLAG_CHAT | CFGFLAG_SERVER, ConUnDeepPl, this, "Makes the player UnDeepFreeze. Usage: /undeeppl ?r[player name | player id");
+	
+	// Console
+
+	Console()->Register("broadcastid", "v[id] r[message]", CFGFLAG_SERVER, ConBroadcastId, this, "Broadcast message to player with client ID");
+
 }
 
 void CGameContext::OnInit(const void *pPersistentData)
