@@ -21,4 +21,7 @@ extern const char *GIT_SHORTREV_HASH;
 // ddnet++
 #include "version_ddpp.h"
 
+// XOR
+#define XOR_VERSION "1.0"
+
 #endif

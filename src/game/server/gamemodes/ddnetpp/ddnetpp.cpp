@@ -137,7 +137,7 @@ void CGameControllerDDNetPP::OnPlayerConnect(class CPlayer *pPlayer)
 			aSubGameType[0] = '\0';
 			if(g_Config.m_SvDDPPgametype[0])
 				str_format(aSubGameType, sizeof(aSubGameType), "(%s) ", g_Config.m_SvDDPPgametype);
-			str_format(aWelcome, sizeof(aWelcome), "DDNet++ %s%s based on DDNet " GAME_RELEASE_VERSION, aSubGameType, DDNETPP_VERSIONSTR);
+			str_format(aWelcome, sizeof(aWelcome), "XOR Mod. Version: %s based on DDNet++ %s%s with version of DDNet " GAME_RELEASE_VERSION, XOR_VERSION, aSubGameType, DDNETPP_VERSIONSTR);
 			GameServer()->SendChatTarget(ClientId, aWelcome);
 		}
 	}
