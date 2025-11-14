@@ -1,7 +1,7 @@
 # Server settings
 
 + `xor_telegram_link` Link to your Telegram channel
-+ `xor_telegram_link` Link to your Discord server
++ `xor_discord_link` Link to your Discord server
 
 
 # Rcon commands
